@@ -3,41 +3,38 @@ import time
 import winsound
 
 
-def morse_code_translator(morse_code: list, morse_alphabet: dict) -> str:
-    # Checking the morse code
+def decode_morse_code(morse_code: list, morse_alphabet_rev: dict) -> str:
+    # Checking the morse code and prepare morse_code to decode!
+    prepare_message_list = []
     for morse_letter in morse_code:
-        for sign in morse_letter:
-            if sign not in ('.', '-', '|', ' '):
-                return "Това не е морзов код !!!"
-
-    list_with_morse_codes = []
-    # Subtracting '|' as a separate symbol from morse_code!
-    for morse_letter in morse_code:
+        for symbol in morse_letter:
+            if symbol not in ('.', '-', ' ', '|'):
+                return f'Attention, this code: "{morse_letter}" is wrong!!!'
         if '|' in morse_letter:
+            # Subtracting '|' as a separate symbol from morse_code!
             while '|' in morse_letter:
                 pipe_index = morse_letter.index('|')
-                list_with_morse_codes.append(morse_letter[:pipe_index])
-                list_with_morse_codes.append('|')
+                prepare_message_list.append(morse_letter[:pipe_index])
+                prepare_message_list.append('|')
                 if not '|' in morse_letter[pipe_index + 1:]:
-                    list_with_morse_codes.append(morse_letter[pipe_index + 1:])
+                    prepare_message_list.append(morse_letter[pipe_index + 1:])
                 morse_letter = morse_letter[pipe_index + 1:]
         else:
-            list_with_morse_codes.append(morse_letter)
+            prepare_message_list.append(morse_letter)
 
+    # Decode Morse code message
     output_message = ''
-    # Decoding the morse code
-    for morse_letter in list_with_morse_codes:
+
+    for morse_letter in prepare_message_list:
         if morse_letter == '|':
             output_message += ' '
         else:
-            for letter, code in morse_alphabet.items():
-                if morse_letter == code:
-                    output_message += letter
-                    break
+            if morse_letter in morse_alphabet_rev.keys():
+                output_message += morse_alphabet_rev[morse_letter]
     return output_message
 
 
-def message_morse_coding(text_for_coding: str, morse_alphabet: dict) -> str:
+def coding_text_message(text_for_coding: str, morse_alphabet: dict) -> str:
     output_morse_code = ''
 
     for idx in range(len(text_for_coding)):
@@ -45,13 +42,13 @@ def message_morse_coding(text_for_coding: str, morse_alphabet: dict) -> str:
         if symbol == ' ':
             output_morse_code += '|'
         else:
+            # Checking for next symbol
             if (idx + 1) < len(text_for_coding):
                 next_symbol = text_for_coding[idx + 1]
-                if next_symbol != ' ':
-                    if symbol.upper() in morse_alphabet:
+                if symbol.upper() in morse_alphabet.keys():
+                    if next_symbol != ' ':
                         output_morse_code += morse_alphabet[symbol.upper()] + ' '
-                else:
-                    if symbol.upper() in morse_alphabet:
+                    else:
                         output_morse_code += morse_alphabet[symbol.upper()]
             elif idx == len(text_for_coding) - 1:
                 output_morse_code += morse_alphabet[symbol.upper()]
@@ -63,20 +60,21 @@ def sound(morse_code: str):
     # Adding the "p" symbol between Morse code characters into one letter.
     message_for_send = ''
 
-    for idx in range(len(morse_code)):
-        symbol = morse_code[idx]
-        if idx == len(morse_code) - 1 or symbol == ' ' or symbol == '|':
-            message_for_send += symbol
-        elif (idx + 1) < len(morse_code):
-            next_symbol = morse_code[idx + 1]
-            if next_symbol == ' ' or next_symbol == '|':
-                message_for_send += symbol
-            else:
-                message_for_send += symbol + 'p'
-    # Sound message
+    for morse_letter in morse_code:
+        if morse_letter == ' ' or morse_letter == '|':
+            message_for_send += morse_letter
+        else:
+            for index in range(len(morse_letter)):
+                if index < len(morse_letter) - 1:
+                    message_for_send += morse_letter[index] + 'p'
+                else:
+                    message_for_send += morse_letter[index]
+
     # With the unit_time variable we can adjust the speed of message transmission!
     unit_time = 100  # in mS !!!
     pause_time = unit_time / 1000  # 1 unit_time in seconds !!!
+
+    # Sound message
     for symbol in message_for_send:
         if symbol == '.':
             # point - frequency 600 Hz, duration 1 unit_time
@@ -104,37 +102,41 @@ morse_code_alphabet = {'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.'
                        'O': '---', 'P': '.--.', 'Q': '--.-', 'R': '.-.', 'S': '...', 'T': '-', 'U': '..-',
                        'V': '...-', 'W': '.--', 'X': '-..-', 'Y': '-.--', 'Z': '--..', '0': '—–',
                        '1': '.—-', '2': '..—', '3': '...–', '4': '....-', '5': '.....', '6': '-....',
-                       '7': '--...', '8': '---..', '9': '----.'
+                       '7': '--...', '8': '---..', '9': '----.', '.': '.-.-.-', ',': '--..--', '?': '..--..',
+                       "'": '.----.', '!': '-.-.--', '/': '-..-.', '(': '-.--.', ')': '-.--.-', '&': '.-...',
+                       ':': '---...', ';': '-.-.-.', '=': '-...-', '-': '-....-', '_': '..--.-', '"': '.-..-.',
+                       '$': '...-..-', '@': '.--.-.'
                        }
 
-command = input("\nМоля, изберете действие:\n"
-                "'C' за кодиране на съобщение\n"
-                "'D' за декодиране на съобщение\n"
-                "За изход от програмата въведете End\n").lower()
+morse_code_alphabet_reverse = {value: key for key, value in morse_code_alphabet.items()}
+
+command = input("\nPlease, select an action:\n"
+                'Press "C" to code text message\n'
+                'Press "D" to decode Morse code\n'
+                'For escape enter "End"\n').upper()
 
 while command != "end":
 
-    if command == 'd':
-        morse_codes_message = input("Моля, въведете морзов код: ").split()
-        text_message = morse_code_translator(morse_codes_message, morse_code_alphabet)
-        print(f"Декодирано съобщение:\n{text_message}")
+    if command == 'D':
+        morse_codes_message = input("Please, enter Morse code: ").split()
+        text_message = decode_morse_code(morse_codes_message, morse_code_alphabet_reverse)
+        print(f"Decoded message:\n{text_message}")
 
-    elif command == 'c':
-        text = input("Моля, въведете текстово съобщение на латиница!\n")
-        code_message = message_morse_coding(text, morse_code_alphabet)
-        print(f"Морзов код:\n{code_message}\n")
+    elif command == 'C':
+        text = input("Please enter a text message in Latin!\n")
+        code_message = coding_text_message(text, morse_code_alphabet)
+        print(f"Morse code:\n{code_message}\n")
         # If the user wants to hear the message
-        sound_command = input("Моля, въведете Y ако искате да чуете съобщението\n"
-                              "или произволен клавиш за да продължите\n"
-                              "Потвърдете с Enter: ").lower()
-        if sound_command == 'y':
+        sound_command = input('Please, press "Y" if you want to hear the message\n'
+                              'press any key to continue\n'
+                              'end press "Enter": ').upper()
+        if sound_command == 'Y':
             sound(code_message)
 
     else:
-        print("Грешна команда!")
+        print("Wrong command!")
 
-    command = input("\nМоля, изберете действие:\n"
-                    "'C' за кодиране на съобщение\n"
-                    "'D' за декодиране на съобщение\n"
-                    "За изход от програмата въведете End\n").lower()
-
+    command = input("\nPlease, select an action:\n"
+                    'Press "C" to code text message\n'
+                    'Press "D" to decode Morse code\n'
+                    'For escape enter "End"\n').upper()
